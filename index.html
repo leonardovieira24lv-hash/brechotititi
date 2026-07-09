@@ -213,10 +213,34 @@ h1,h2,h3,h4{ font-family: var(--font-display); font-weight:500; }
 
 .menu-toggle{
   display:flex; flex-direction:column; gap:5px; width:26px;
+  background:none; border:none; padding:6px; cursor:pointer; z-index:210;
 }
 @media(min-width:960px){ .menu-toggle{ display:none; } }
-.menu-toggle span{ height:1.5px; background: var(--white); transition: background .4s var(--ease); }
+.menu-toggle span{ height:1.5px; background: var(--white); transition: background .4s var(--ease), transform .3s var(--ease), opacity .3s var(--ease); }
 .header.scrolled .menu-toggle span{ background: var(--black); }
+
+/* Menu mobile aberto */
+@media(max-width:959px){
+  .nav{
+    display:none; flex-direction:column; gap:0;
+    position:fixed; top:0; right:0; height:100vh; width:min(78vw,320px);
+    background: var(--white); padding: 110px 36px 40px; z-index:200;
+    box-shadow: -10px 0 40px rgba(21,19,15,0.14);
+    transform: translateX(100%); transition: transform .4s var(--ease);
+  }
+  .nav.nav-open{ display:flex; transform: translateX(0); }
+  .nav a{ color: var(--black); opacity:1; padding: 14px 0; border-bottom:1px solid var(--gray-light); }
+  .nav-backdrop{
+    display:none; position:fixed; inset:0; background: rgba(21,19,15,0.35);
+    z-index:190; opacity:0; transition: opacity .3s var(--ease);
+  }
+  .nav-backdrop.nav-open{ display:block; opacity:1; }
+}
+/* Ícone vira X quando o menu está aberto */
+.menu-toggle.is-active span:nth-child(1){ transform: translateY(6.5px) rotate(45deg); }
+.menu-toggle.is-active span:nth-child(2){ opacity:0; }
+.menu-toggle.is-active span:nth-child(3){ transform: translateY(-6.5px) rotate(-45deg); }
+.menu-toggle.is-active span{ background: var(--black) !important; }
 
 /* ============================================================
    3. HERO
@@ -532,11 +556,12 @@ footer{ background: var(--beige); padding: 70px 0 30px; }
     </nav>
     <div style="display:flex; align-items:center; gap:20px;">
       <a class="header-cta" href="https://wa.me/5527900000000" target="_blank" rel="noopener">WhatsApp</a>
-      <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">
+      <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu" aria-expanded="false">
         <span></span><span></span><span></span>
       </button>
     </div>
   </div>
+  <div class="nav-backdrop" id="navBackdrop"></div>
 </header>
 
 <!-- ============================================================
@@ -644,7 +669,7 @@ footer{ background: var(--beige); padding: 70px 0 30px; }
     </div>
     <div class="video-frame reveal reveal-delay-1">
       <!-- Substituir "SEU-VIDEO-AQUI.mp4" pelo arquivo real do vídeo da loja e "poster.jpg" pela imagem de capa -->
-      <video controls preload="metadata" poster="foto-video.jpg">
+      <video controls preload="metadata" poster="https://picsum.photos/id/1005/720/1280">
         <source src="SEU-VIDEO-AQUI.mp4" type="video/mp4">
         Seu navegador não suporta a reprodução de vídeo.
       </video>
@@ -921,12 +946,42 @@ instaPosts.forEach(id => {
   instaGrid.appendChild(a);
 });
 
-// ---- 7. Mobile menu toggle (comportamento simples de scroll até nav) ----
+// ---- 7. Mobile menu toggle (abre e fecha corretamente) ----
 const menuToggle = document.getElementById('menuToggle');
-menuToggle.addEventListener('click', () => {
-  document.querySelector('.nav').style.cssText = 'display:flex; flex-direction:column; position:fixed; top:70px; right:20px; background:#fff; padding:24px 32px; box-shadow:0 20px 40px rgba(0,0,0,0.12); gap:18px;';
-  document.querySelectorAll('.nav a').forEach(a => a.style.color = '#15130f');
+const nav = document.querySelector('.nav');
+const navBackdrop = document.getElementById('navBackdrop');
+
+function openMenu(){
+  nav.classList.add('nav-open');
+  navBackdrop.classList.add('nav-open');
+  menuToggle.classList.add('is-active');
+  menuToggle.setAttribute('aria-expanded', 'true');
+  document.body.style.overflow = 'hidden'; // trava o scroll do fundo enquanto o menu está aberto
+}
+function closeMenu(){
+  nav.classList.remove('nav-open');
+  navBackdrop.classList.remove('nav-open');
+  menuToggle.classList.remove('is-active');
+  menuToggle.setAttribute('aria-expanded', 'false');
+  document.body.style.overflow = '';
+}
+
+menuToggle.addEventListener('click', (e) => {
+  e.stopPropagation();
+  nav.classList.contains('nav-open') ? closeMenu() : openMenu();
 });
+
+// fecha ao clicar em qualquer link do menu (ex: ao navegar/rolar até uma seção)
+nav.querySelectorAll('a').forEach(a => a.addEventListener('click', closeMenu));
+
+// fecha ao clicar no fundo escurecido
+navBackdrop.addEventListener('click', closeMenu);
+
+// fecha ao pressionar ESC
+document.addEventListener('keydown', (e) => { if(e.key === 'Escape') closeMenu(); });
+
+// fecha automaticamente se a tela for redimensionada para versão desktop
+window.addEventListener('resize', () => { if(window.innerWidth >= 960) closeMenu(); });
 </script>
 
 </body>
